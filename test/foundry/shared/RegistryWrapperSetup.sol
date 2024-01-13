@@ -14,14 +14,7 @@ contract RegistryWrapperSetup is Test, Accounts {
     Registry internal _registry_;
     RegistryWrapper internal _registryWrapper_;
 
-    struct RegistryData {
-        address owner;
-        bool active;
-        address registry;
-        Metadata metadata;
-    }
-
-    mapping(address => RegistryData) internal _registries_;
+    mapping(address => RegistryWrapper.RegistryData) internal _registries_;
 
     function __RegistryWrapperSetup() internal {
         _registry_ = new Registry();

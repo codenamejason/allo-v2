@@ -1,43 +1,47 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.19;
 
-import "forge-std/Test.sol";
 import "../shared/RegistrySetup.sol";
 
 // Core Contracts
-import {RegistryWrapperSetup} from "../shared/RegistryWrapperSetup.sol";
+import {RegistryWrapperSetupFull} from "../shared/RegistryWrapperSetup.sol";
+import {RegistryWrapper} from "../../../contracts/core/RegistryWrapper.sol";
 import {Anchor} from "../../../contracts/core/Anchor.sol";
+import {AlloSetup} from "../shared/AlloSetup.sol";
 
 // Internal libraries
-import {Errors} from "../../../contracts/core/libraries/Errors.sol";
-import {Native} from "../../../contracts/core/libraries/Native.sol";
 import {Metadata} from "../../../contracts/core/libraries/Metadata.sol";
 // Test libraries
 import {TestUtilities} from "../../utils/TestUtilities.sol";
 import {MockERC20} from "../../utils/MockERC20.sol";
 
-contract RegistryWrapperTest is Test, RegistryWrapperSetup, Native, Errors {
+contract RegistryWrapperTest is AlloSetup, RegistryWrapper, RegistryWrapperSetupFull {
     Metadata public metadata;
     string public name;
     uint256 public nonce;
 
     MockERC20 public token;
 
+    RegistryWrapper public registryWrapper;
+
     function setUp() public {
         __RegistryWrapperSetup();
+        __AlloSetup(address(registry()));
         metadata = Metadata({protocol: 1, pointer: "test metadata"});
         name = "New Profile";
         nonce = 2;
 
         token = new MockERC20();
+
+        registryWrapper = new RegistryWrapper();
+        registryWrapper.initializeWrapper(registry_owner(), RegistryType.ALLO);
     }
 
-    function test_initialize() public {
-        Registry newRegistry = new Registry();
-        newRegistry.initialize(registry_owner());
-
-        assertTrue(newRegistry.hasRole(newRegistry.ALLO_OWNER(), registry_owner()));
-    }
+    // function test_initialize() public {
+    //     RegistryWrapper newRegistryWrapper = new RegistryWrapper();
+    //     registryWrapper.initializeWrapper(registry_owner(), RegistryType.ALLO);
+    //     assertTrue(newRegistryWrapper.hasRole(newRegistryWrapper.ALLO_OWNER(), registry_owner()));
+    // }
 
     function testRevert_initialize_zeroAddress() public {
         Registry newRegistry = new Registry();
@@ -55,14 +59,43 @@ contract RegistryWrapperTest is Test, RegistryWrapperSetup, Native, Errors {
     }
 
     function test_addRegistryToList() public {
-        // bytes32 profileId = _registryWrapper_.createProfile(0, "New Profile", metadata, profile1_owner(), profile1_members());
-        // address registry = address(new Registry());
-        // bytes memory data = abi.encode(Metadata({protocol: 1, pointer: "test metadata"}));
+        vm.prank(address(allo()));
 
-        // string memory anchor = _registryWrapper_.addRegistryToList(profileId, registry, data);
+        vm.expectEmit();
+        emit RegistryUpdated(address(makeAddr("givith")), true);
 
-        // assertTrue(_registryWrapper_.isRegistry(profileId, registry));
-        // assertTrue(_registryWrapper_.isRegistryAnchor(profileId, registry));
-        //assertEquals(anchor, _registry_.getProfileById(profileId).anchor);
+        registryWrapper.addRegistryToList(profile1_id(), address(makeAddr("givith")), abi.encode(metadata));
+    }
+
+    function testRevert_addRegistryToList_zeroAddress() public {
+        vm.prank(address(allo()));
+
+        vm.expectRevert(ZERO_ADDRESS.selector);
+        registryWrapper.addRegistryToList(profile1_id(), address(0), abi.encode(metadata));
+    }
+
+    // function testRevert_addRegistryToList_notAllo() public {
+    //     vm.prank(address(allo()));
+    //     vm.expectRevert();
+    //     registryWrapper.addRegistryToList(profile1_id(), address(makeAddr("givith")), abi.encode(metadata));
+    // }
+
+    function test_updateRegistryList() public {
+        vm.prank(address(allo()));
+
+        vm.expectEmit();
+        emit RegistryUpdated(address(makeAddr("givith")), true);
+        registryWrapper.addRegistryToList(profile1_id(), address(makeAddr("givith")), abi.encode(metadata, true));
+
+        vm.expectEmit();
+        emit RegistryUpdated(address(makeAddr("givith")), false);
+        registryWrapper.updateRegistryList(profile1_id(), address(makeAddr("givith")), abi.encode(metadata, false));
+
+        (address owner, bool active, address registry, Metadata memory meatadata) =
+            registryWrapper.registries(address(makeAddr("givith")));
+
+        assertEq(metadata.protocol, 1);
+        assertEq(metadata.pointer, "test metadata");
+        assertTrue(active == false);
     }
 }

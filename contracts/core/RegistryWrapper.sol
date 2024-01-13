@@ -27,6 +27,12 @@ import {IRegistryWrapper} from "./interfaces/IRegistryWrapper.sol";
 
 /// @title Registry Contract
 contract RegistryWrapper is Registry, IRegistryWrapper {
+    // ====================================
+    // =========== Errors =================
+    // ====================================
+    error RegistryNotSupported();
+    error RegistryNotActive();
+
     // Map the registy address to the registry data
     mapping(address => RegistryData) public registries;
 
@@ -36,10 +42,40 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
 
     /// @notice Initializes the contract after an upgrade
     /// @dev During upgrade -> a higher version should be passed to reinitializer. Reverts if the '_owner' is the 'address(0)'
+    /// * we will initiialize with Allo Registry type and add the others.
     /// @param _owner The owner of the contract
     function initializeWrapper(address _owner, RegistryType _type) external virtual reinitializer(1) {
         // Make sure the owner is not 'address(0)'
         if (_owner == address(0)) revert ZERO_ADDRESS();
+
+        // Basic idea of how we can initialize each one based on the type
+        if (RegistryType.GIVITH == _type) {
+            // Initialize the registry
+            // initialize(_owner);
+
+            // Grant the Allo role to the owner
+            _grantRole(ALLO_OWNER, _owner);
+        } else if (RegistryType.CLRFUND == _type) {
+            // Initialize the registry
+            // initialize(_owner);
+
+            // Grant the Allo role to the owner
+            _grantRole(ALLO_OWNER, _owner);
+        } else if (RegistryType.OP == _type) {
+            // Initialize the registry
+            // initialize(_owner);
+
+            // Grant the Allo role to the owner
+            _grantRole(ALLO_OWNER, _owner);
+        } else if (RegistryType.OTHER == _type) {
+            // Initialize the registry
+            // initialize(_owner);
+
+            // Grant the Allo role to the owner
+            _grantRole(ALLO_OWNER, _owner);
+        } else {
+            revert RegistryNotSupported();
+        }
 
         // Grant the Allo role to the owner
         _grantRole(ALLO_OWNER, _owner);
@@ -55,18 +91,21 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
     function addRegistryToList(bytes32 _profileId, address _registry, bytes memory _data)
         external
         override
-        onlyProfileOwner(_profileId)
         returns (string memory)
     {
         if (_registry == address(0)) revert ZERO_ADDRESS();
 
         // Add the registry to the mapping if its not already there, otherwise update it to the new data
         RegistryData storage registryData = registries[_registry];
+
+        // decode the data
+        (Metadata memory metadata, bool active) = abi.decode(_data, (Metadata, bool));
+
         if (registryData.registry == _registry) {} else {
             // Initialize the registry
             registryData.registry = _registry;
-            registryData.metadata = abi.decode(_data, (Metadata));
-            registryData.active = true;
+            registryData.metadata = metadata;
+            registryData.active = active;
             registryData.owner = msg.sender;
 
             // Emit the event
@@ -74,9 +113,10 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
         }
     }
 
-    /// @notice Updates the registry address
+    /// @notice Updates whether registry is active or not and updates the metadata
     /// @param _registry The address of the registry to update
     /// @param _data The data to pass to the registry that needs to be updated
+    /// The data should look like this: (Metadata, bool)
     function updateRegistryList(bytes32 _profileId, address _registry, bytes memory _data)
         external
         override
@@ -85,13 +125,16 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
         // Add the registry to the mapping if its not already there, otherwise update it to the new data
         RegistryData storage registryData = registries[_registry];
 
+        // decode the data
+        (Metadata memory metadata, bool active) = abi.decode(_data, (Metadata, bool));
+
         // Update the registry
         registryData.registry = _registry;
-        registryData.metadata = abi.decode(_data, (Metadata));
-        registryData.active = true;
+        registryData.metadata = metadata;
+        registryData.active = active;
         registryData.owner = msg.sender;
 
         // Emit the event
-        emit RegistryUpdated(_registry, registryData.active);
+        emit RegistryUpdated(_registry, active);
     }
 }
