@@ -9,6 +9,9 @@ import {ERC20} from "solady/tokens/ERC20.sol";
 import "./Registry.sol";
 // Interfaces
 import {IRegistryWrapper} from "./interfaces/IRegistryWrapper.sol";
+import {IEAS, Attestation, AttestationRequest, AttestationRequestData} from "eas-contracts/IEAS.sol";
+import {ISchemaRegistry, ISchemaResolver, SchemaRecord} from "eas-contracts/ISchemaRegistry.sol";
+import {EASSchemaResolver} from "../eas/EASSchemaResolver.sol";
 
 // ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⣿⣷⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣗⠀⠀⠀⢸⣿⣿⣿⡯⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 // ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⣿⣿⣿⣷⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣗⠀⠀⠀⢸⣿⣿⣿⡯⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -26,7 +29,7 @@ import {IRegistryWrapper} from "./interfaces/IRegistryWrapper.sol";
 //                    allo.gitcoin.co
 
 /// @title Registry Contract
-contract RegistryWrapper is Registry, IRegistryWrapper {
+contract RegistryWrapper is Registry, IRegistryWrapper, EASSchemaResolver {
     // ====================================
     // =========== Errors =================
     // ====================================
@@ -36,6 +39,23 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
     error AlreadySubscribed();
     error AlreadyPublished();
     error NotPublished();
+    error ALREADY_ADDED();
+    error OUT_OF_BOUNDS();
+    error INVALID_SCHEMA();
+
+    bytes32 public constant _NO_RELATED_ATTESTATION_UID = 0;
+    EASInfo public easInfo;
+
+    struct EASInfo {
+        IEAS eas;
+        ISchemaRegistry schemaRegistry;
+        bytes32 schemaUID;
+        string schema;
+        bool revocable;
+    }
+
+    // recipientId -> uid
+    mapping(address => bytes32) public recipientIdToUID;
 
     // Map the registy address to the registry data
     mapping(address => RegistryData) public registries;
@@ -188,5 +208,77 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
 
         // Emit the event
         emit RegistryUpdated(_registry, active);
+    }
+
+    /// @dev Grant EAS attestation to recipient with the EAS contract.
+    /// @param _recipientId The recipient ID to grant the attestation to.
+    /// @param _expirationTime The expiration time of the attestation.
+    /// @param _data The data to include in the attestation.
+    /// @param _value The value to send with the attestation.
+    function _grantEASAttestation(address _recipientId, uint64 _expirationTime, bytes memory _data, uint256 _value)
+        internal
+        returns (bytes32)
+    {
+        AttestationRequest memory attestationRequest = AttestationRequest(
+            easInfo.schemaUID,
+            AttestationRequestData({
+                recipient: _recipientId,
+                expirationTime: _expirationTime,
+                revocable: easInfo.revocable,
+                refUID: _NO_RELATED_ATTESTATION_UID,
+                data: _data,
+                value: _value
+            })
+        );
+
+        return easInfo.eas.attest(attestationRequest);
+    }
+
+    /// =========================
+    /// ==== EAS Functions =====
+    /// =========================
+
+    // Note: EAS Information - Supported Testnets
+    // Version: 0.27
+    // * OP Goerli
+    //    EAS Contract: 0xC2679fBD37d54388Ce493F1DB75320D236e1815e
+    //    Schema Registry: 0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0
+    // * Sepolia
+    //    EAS Contract: 0x1a5650d0ecbca349dd84bafa85790e3e6955eb84
+    //    Schema Registry: 0x7b24C7f8AF365B4E308b6acb0A7dfc85d034Cb3f
+
+    /// @dev Gets an attestation from the EAS contract using the UID
+    /// @param uid The UUID of the attestation to get.
+    function getAttestation(bytes32 uid) external view returns (Attestation memory) {
+        return easInfo.eas.getAttestation(uid);
+    }
+
+    /// @dev Gets a schema from the SchemaRegistry contract using the UID
+    /// @param uid The UID of the schema to get.
+    function getSchema(bytes32 uid) external view returns (SchemaRecord memory) {
+        return easInfo.schemaRegistry.getSchema(uid);
+    }
+
+    /// @notice Returns if this contract is payable or not
+    /// @return True if the attestation is payable, false otherwise
+    function isPayable() public pure override returns (bool) {
+        return true;
+    }
+
+    /// @notice Returns if the attestation is expired or not
+    /// @param _recipientId The recipient ID to check
+    function isAttestationExpired(address _recipientId) external view returns (bool) {
+        if (easInfo.eas.getAttestation(recipientIdToUID[_recipientId]).expirationTime < block.timestamp) {
+            return true;
+        }
+        return false;
+    }
+
+    function onAttest(Attestation calldata, uint256) internal pure override returns (bool) {
+        return true;
+    }
+
+    function onRevoke(Attestation calldata, uint256) internal pure override returns (bool) {
+        return true;
     }
 }
