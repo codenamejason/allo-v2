@@ -60,7 +60,7 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
     /// @dev During upgrade -> a higher version should be passed to reinitializer. Reverts if the '_owner' is the 'address(0)'
     /// * we will initiialize with Allo Registry type and add the others.
     /// @param _owner The owner of the contract
-    function initializeWrapper(address _owner, address _registry, RegistryType _type, bytes32 _data)
+    function initialize(address _owner, address _registry, RegistryType _type, bytes32 _data)
         external
         virtual
         reinitializer(1)
@@ -90,7 +90,7 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
         return IRegistry(address(this));
     }
 
-    function publishRegistry(address registry, bytes32 data) external returns (bool) {
+    function publishRegistry(address registry, bytes32 data) public returns (bool) {
         // Make sure the registry is active
         if (!registries[registry].active) revert RegistryNotActive();
 
@@ -106,7 +106,17 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
         return true;
     }
 
-    function subscribeToRegistry(address registry, bytes32 data) external returns (bool) {
+    function batchPublishRegistries(address[] memory _registries, bytes32[] memory _datas)
+        external
+        override
+        returns (bool)
+    {
+        for (uint256 i = 0; i < _registries.length; i++) {
+            publishRegistry(_registries[i], _datas[i]);
+        }
+    }
+
+    function subscribeToRegistry(address registry, bytes32 data) public override returns (bool) {
         // Make sure the registry is active
         if (!registries[registry].active) revert RegistryNotActive();
 
@@ -120,6 +130,16 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
         emit Subscribed(registry, true, msg.sender);
 
         return true;
+    }
+
+    function batchSubscribeToRegistries(address[] memory _registries, bytes32[] memory _datas)
+        external
+        override
+        returns (bool)
+    {
+        for (uint256 i = 0; i < _registries.length; i++) {
+            subscribeToRegistry(_registries[i], _datas[i]);
+        }
     }
 
     /// @notice Updates the registry address

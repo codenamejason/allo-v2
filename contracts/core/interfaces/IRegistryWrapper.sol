@@ -58,7 +58,11 @@ interface IRegistryWrapper is IRegistry {
 
     function publishRegistry(address registry, bytes32 data) external returns (bool);
 
+    function batchPublishRegistries(address[] memory registries, bytes32[] memory _datas) external returns (bool);
+
     function subscribeToRegistry(address registry, bytes32 data) external returns (bool);
+
+    function batchSubscribeToRegistries(address[] memory registries, bytes32[] memory _datas) external returns (bool);
 
     /// @notice Updates the registry address
     /// @param _registry The address of the registry to update

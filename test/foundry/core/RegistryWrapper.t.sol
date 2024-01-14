@@ -34,7 +34,7 @@ contract RegistryWrapperTest is AlloSetup, RegistryWrapper, RegistryWrapperSetup
         token = new MockERC20();
 
         registryWrapper = new RegistryWrapper();
-        registryWrapper.initializeWrapper(registry_owner(), makeAddr("opeas"), RegistryType.OPEAS, bytes32(0));
+        registryWrapper.initialize(registry_owner(), makeAddr("opeas"), RegistryType.OPEAS, bytes32(0));
     }
 
     // function test_initialize() public {
