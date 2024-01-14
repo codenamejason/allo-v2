@@ -32,9 +32,25 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
     // ====================================
     error RegistryNotSupported();
     error RegistryNotActive();
+    error NotSubscribed();
+    error AlreadySubscribed();
+    error AlreadyPublished();
+    error NotPublished();
 
     // Map the registy address to the registry data
     mapping(address => RegistryData) public registries;
+
+    // Queue for publishing
+    // registry => publisher => bool
+    mapping(address => mapping(address => bool)) public pubQueue;
+
+    // Queue for subscribing
+    // registry => subscriber => bool
+    mapping(address => mapping(address => bool)) public subQueue;
+
+    // Subscribers
+    // registry => subscriber => bool
+    mapping(address => mapping(address => bool)) public subscribers;
 
     // ====================================
     // =========== Initializer =============
@@ -44,55 +60,72 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
     /// @dev During upgrade -> a higher version should be passed to reinitializer. Reverts if the '_owner' is the 'address(0)'
     /// * we will initiialize with Allo Registry type and add the others.
     /// @param _owner The owner of the contract
-    function initializeWrapper(address _owner, RegistryType _type) external virtual reinitializer(1) {
+    function initializeWrapper(address _owner, address _registry, RegistryType _type, bytes32 _data)
+        external
+        virtual
+        reinitializer(1)
+    {
         // Make sure the owner is not 'address(0)'
         if (_owner == address(0)) revert ZERO_ADDRESS();
 
         // Basic idea of how we can initialize each one based on the type
-        if (RegistryType.GIVITH == _type) {
-            // Initialize the registry
-            // initialize(_owner);
-
-            // Grant the Allo role to the owner
-            _grantRole(ALLO_OWNER, _owner);
+        if (RegistryType.OPEAS == _type) {
+            // todo:
+            registries[_registry].registry = _registry;
+        } else if (RegistryType.GIVITH == _type) {
+            // todo:
+            registries[_registry].registry = _registry;
         } else if (RegistryType.CLRFUND == _type) {
-            // Initialize the registry
-            // initialize(_owner);
-
-            // Grant the Allo role to the owner
-            _grantRole(ALLO_OWNER, _owner);
-        } else if (RegistryType.OP == _type) {
-            // Initialize the registry
-            // initialize(_owner);
-
-            // Grant the Allo role to the owner
-            _grantRole(ALLO_OWNER, _owner);
-        } else if (RegistryType.OTHER == _type) {
-            // Initialize the registry
-            // initialize(_owner);
-
-            // Grant the Allo role to the owner
-            _grantRole(ALLO_OWNER, _owner);
+            // todo:
+            registries[_registry].registry = _registry;
+        } else if (RegistryType.ALLO == _type) {
+            // todo:
+            registries[_registry].registry = _registry;
         } else {
             revert RegistryNotSupported();
         }
-
-        // Grant the Allo role to the owner
-        _grantRole(ALLO_OWNER, _owner);
     }
 
     function wrappedRegistry() external view override returns (IRegistry) {
         return IRegistry(address(this));
     }
 
+    function publishRegistry(address registry, bytes32 data) external returns (bool) {
+        // Make sure the registry is active
+        if (!registries[registry].active) revert RegistryNotActive();
+
+        // Make sure the publisher is not already in the queue
+        if (pubQueue[registry][msg.sender]) revert AlreadyPublished();
+
+        // Add the publisher to the queue
+        pubQueue[registry][msg.sender] = true;
+
+        // Emit the event
+        emit Published(registry, true, msg.sender);
+
+        return true;
+    }
+
+    function subscribeToRegistry(address registry, bytes32 data) external returns (bool) {
+        // Make sure the registry is active
+        if (!registries[registry].active) revert RegistryNotActive();
+
+        // Make sure the subscriber is not already subscribed
+        if (subscribers[registry][msg.sender]) revert AlreadySubscribed();
+
+        // Add the subscriber to the queue
+        subQueue[registry][msg.sender] = true;
+
+        // Emit the event
+        emit Subscribed(registry, true, msg.sender);
+
+        return true;
+    }
+
     /// @notice Updates the registry address
     /// @param _registry The address of the registry to update
     /// @param _data The data to pass to the registry for initialization
-    function addRegistryToList(bytes32 _profileId, address _registry, bytes memory _data)
-        external
-        override
-        returns (string memory)
-    {
+    function addRegistryToList(address _registry, bytes memory _data) external override returns (string memory) {
         if (_registry == address(0)) revert ZERO_ADDRESS();
 
         // Add the registry to the mapping if its not already there, otherwise update it to the new data
@@ -101,12 +134,15 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
         // decode the data
         (Metadata memory metadata, bool active) = abi.decode(_data, (Metadata, bool));
 
-        if (registryData.registry == _registry) {} else {
+        if (registryData.registry == _registry) {
             // Initialize the registry
             registryData.registry = _registry;
             registryData.metadata = metadata;
             registryData.active = active;
             registryData.owner = msg.sender;
+
+            // Add to the mapping
+            registries[_registry] = registryData;
 
             // Emit the event
             emit RegistryUpdated(_registry, true);
@@ -117,11 +153,7 @@ contract RegistryWrapper is Registry, IRegistryWrapper {
     /// @param _registry The address of the registry to update
     /// @param _data The data to pass to the registry that needs to be updated
     /// The data should look like this: (Metadata, bool)
-    function updateRegistryList(bytes32 _profileId, address _registry, bytes memory _data)
-        external
-        override
-        returns (string memory)
-    {
+    function updateRegistryList(address _registry, bytes memory _data) external override returns (string memory) {
         // Add the registry to the mapping if its not already there, otherwise update it to the new data
         RegistryData storage registryData = registries[_registry];
 

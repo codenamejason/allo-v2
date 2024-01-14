@@ -29,7 +29,7 @@ interface IRegistryWrapper is IRegistry {
         ALLO, // 0
         GIVITH, // 1
         CLRFUND, // 2
-        OP, // 3
+        OPEAS, // 3
         OTHER // 4 - to be custom later
 
     }
@@ -49,23 +49,24 @@ interface IRegistryWrapper is IRegistry {
     /// ======= Events =======
     /// ======================
     event RegistryUpdated(address indexed registry, bool active);
+    event Published(address indexed registry, bool active, address indexed publisher);
+    event Subscribed(address indexed registry, bool active, address indexed subscriber);
 
     /// ======================
     /// ====== Functions ======
     /// ======================
 
+    function publishRegistry(address registry, bytes32 data) external returns (bool);
+
+    function subscribeToRegistry(address registry, bytes32 data) external returns (bool);
+
     /// @notice Updates the registry address
-    /// @param _profileId The ID of the profile that is updating the registry
     /// @param _registry The address of the registry to update
     /// @param _data The data to pass to the registry for initialization
-    function addRegistryToList(bytes32 _profileId, address _registry, bytes memory _data)
-        external
-        returns (string memory);
+    function addRegistryToList(address _registry, bytes memory _data) external returns (string memory);
 
     /// @notice Updates the registry address
     /// @param _registry The address of the registry to update
     /// @param _data The data to pass to the registry that needs to be updated
-    function updateRegistryList(bytes32 _profileId, address _registry, bytes memory _data)
-        external
-        returns (string memory);
+    function updateRegistryList(address _registry, bytes memory _data) external returns (string memory);
 }

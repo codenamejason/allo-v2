@@ -1,18 +1,17 @@
-
 // SPDX-License-Identifier: GPL-3.0
 
 pragma solidity ^0.8.19;
 
-import './IUserRegistry.sol';
-import './BrightIdSponsor.sol';
-import '@openzeppelin/contracts/access/Ownable.sol';
+import "./IUserRegistry.sol";
+import "./BrightIdSponsor.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract BrightIdUserRegistry is Ownable, IUserRegistry {
-    string private constant ERROR_NEWER_VERIFICATION = 'NEWER VERIFICATION REGISTERED BEFORE';
-    string private constant ERROR_NOT_AUTHORIZED = 'NOT AUTHORIZED';
-    string private constant ERROR_INVALID_VERIFIER = 'INVALID VERIFIER';
-    string private constant ERROR_INVALID_CONTEXT = 'INVALID CONTEXT';
-    string private constant ERROR_INVALID_SPONSOR = 'INVALID SPONSOR';
+    string private constant ERROR_NEWER_VERIFICATION = "NEWER VERIFICATION REGISTERED BEFORE";
+    string private constant ERROR_NOT_AUTHORIZED = "NOT AUTHORIZED";
+    string private constant ERROR_INVALID_VERIFIER = "INVALID VERIFIER";
+    string private constant ERROR_INVALID_CONTEXT = "INVALID CONTEXT";
+    string private constant ERROR_INVALID_SPONSOR = "INVALID SPONSOR";
 
     bytes32 public context;
     address public verifier;
@@ -21,6 +20,7 @@ contract BrightIdUserRegistry is Ownable, IUserRegistry {
     struct Verification {
         uint256 time;
     }
+
     mapping(address => Verification) public verifications;
 
     event SetBrightIdSettings(bytes32 context, address verifier);
@@ -80,12 +80,7 @@ contract BrightIdUserRegistry is Ownable, IUserRegistry {
      * @notice Check a user is verified or not
      * @param _user BrightID context id used for verifying users
      */
-    function isVerifiedUser(address _user)
-      override
-      external
-      view
-      returns (bool)
-    {
+    function isVerifiedUser(address _user) external view override returns (bool) {
         Verification memory verification = verifications[_user];
         return verification.time > 0;
     }
@@ -104,7 +99,7 @@ contract BrightIdUserRegistry is Ownable, IUserRegistry {
         bytes32 _context,
         address _addr,
         bytes32 _verificationHash,
-        uint _timestamp,
+        uint256 _timestamp,
         uint8 _v,
         bytes32 _r,
         bytes32 _s

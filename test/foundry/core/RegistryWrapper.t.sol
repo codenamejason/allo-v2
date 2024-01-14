@@ -34,7 +34,7 @@ contract RegistryWrapperTest is AlloSetup, RegistryWrapper, RegistryWrapperSetup
         token = new MockERC20();
 
         registryWrapper = new RegistryWrapper();
-        registryWrapper.initializeWrapper(registry_owner(), RegistryType.ALLO);
+        registryWrapper.initializeWrapper(registry_owner(), makeAddr("opeas"), RegistryType.OPEAS, bytes32(0));
     }
 
     // function test_initialize() public {
@@ -62,37 +62,37 @@ contract RegistryWrapperTest is AlloSetup, RegistryWrapper, RegistryWrapperSetup
         vm.prank(address(allo()));
 
         vm.expectEmit();
-        emit RegistryUpdated(address(makeAddr("givith")), true);
+        emit RegistryUpdated(address(makeAddr("opeas")), true);
 
-        registryWrapper.addRegistryToList(profile1_id(), address(makeAddr("givith")), abi.encode(metadata));
+        registryWrapper.addRegistryToList(address(makeAddr("opeas")), abi.encode(metadata));
     }
 
     function testRevert_addRegistryToList_zeroAddress() public {
         vm.prank(address(allo()));
 
         vm.expectRevert(ZERO_ADDRESS.selector);
-        registryWrapper.addRegistryToList(profile1_id(), address(0), abi.encode(metadata));
+        registryWrapper.addRegistryToList(address(0), abi.encode(metadata));
     }
 
     // function testRevert_addRegistryToList_notAllo() public {
     //     vm.prank(address(allo()));
     //     vm.expectRevert();
-    //     registryWrapper.addRegistryToList(profile1_id(), address(makeAddr("givith")), abi.encode(metadata));
+    //     registryWrapper.addRegistryToList(address(makeAddr("opeas")), abi.encode(metadata));
     // }
 
     function test_updateRegistryList() public {
         vm.prank(address(allo()));
 
         vm.expectEmit();
-        emit RegistryUpdated(address(makeAddr("givith")), true);
-        registryWrapper.addRegistryToList(profile1_id(), address(makeAddr("givith")), abi.encode(metadata, true));
+        emit RegistryUpdated(address(makeAddr("opeas")), true);
+        registryWrapper.addRegistryToList(address(makeAddr("opeas")), abi.encode(metadata, true));
 
         vm.expectEmit();
-        emit RegistryUpdated(address(makeAddr("givith")), false);
-        registryWrapper.updateRegistryList(profile1_id(), address(makeAddr("givith")), abi.encode(metadata, false));
+        emit RegistryUpdated(address(makeAddr("opeas")), false);
+        registryWrapper.updateRegistryList(address(makeAddr("opeas")), abi.encode(metadata, false));
 
         (address owner, bool active, address registry, Metadata memory meatadata) =
-            registryWrapper.registries(address(makeAddr("givith")));
+            registryWrapper.registries(address(makeAddr("opeas")));
 
         assertEq(metadata.protocol, 1);
         assertEq(metadata.pointer, "test metadata");
