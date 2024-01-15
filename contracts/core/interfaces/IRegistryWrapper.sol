@@ -26,11 +26,13 @@ import {IRegistry} from "./IRegistry.sol";
 interface IRegistryWrapper is IRegistry {
     // Let's define some registry types
     enum RegistryType {
-        ALLO, // 0
-        GIVITH, // 1
-        CLRFUND, // 2
-        OPEAS, // 3
-        OTHER // 4 - to be custom later
+        ALLO, // 0 - onchain
+        GIVETH, // 1 - currently offchain!
+        CLRFUND, // 2 - onchain
+        OPEAS, // 3 - not a project registry? more like an attestation registry - registry extension? Adapter to
+        // plug Allo Registry into EAS Registry.
+        HYPERCERTS, // 4 - Hypercerts Registry
+        OTHER // 5 - to be custom later
 
     }
 
@@ -53,7 +55,7 @@ interface IRegistryWrapper is IRegistry {
     event Subscribed(address indexed registry, bool active, address indexed subscriber);
 
     /// ======================
-    /// ====== Functions ======
+    /// ====== Functions =====
     /// ======================
 
     function publishRegistry(address registry, bytes32 data) external returns (bool);

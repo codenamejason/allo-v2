@@ -73,26 +73,20 @@ contract RegistryWrapper is Registry, IRegistryWrapper, EASSchemaResolver {
     mapping(address => mapping(address => bool)) public subscribers;
 
     // ====================================
-    // =========== Initializer =============
+    // =========== Initializers =============
     // ====================================
 
-    /// @notice Initializes the contract after an upgrade
-    /// @dev During upgrade -> a higher version should be passed to reinitializer. Reverts if the '_owner' is the 'address(0)'
-    /// * we will initiialize with Allo Registry type and add the others.
-    /// @param _owner The owner of the contract
-    function initialize(address _owner, address _registry, RegistryType _type, bytes32 _data)
-        external
-        virtual
-        reinitializer(1)
-    {
-        // Make sure the owner is not 'address(0)'
-        if (_owner == address(0)) revert ZERO_ADDRESS();
-
+    function initializeInternalRegistry(RegistryType _type, address _registry, bytes memory _data) public {
         // Basic idea of how we can initialize each one based on the type
         if (RegistryType.OPEAS == _type) {
             // todo:
+            // decode _data for EAS
+            (address eas) = abi.decode(_data, (address));
+
+            // Initialize the EAS contract
+            __SchemaResolver_init(IEAS(eas));
             registries[_registry].registry = _registry;
-        } else if (RegistryType.GIVITH == _type) {
+        } else if (RegistryType.GIVETH == _type) {
             // todo:
             registries[_registry].registry = _registry;
         } else if (RegistryType.CLRFUND == _type) {
@@ -101,9 +95,27 @@ contract RegistryWrapper is Registry, IRegistryWrapper, EASSchemaResolver {
         } else if (RegistryType.ALLO == _type) {
             // todo:
             registries[_registry].registry = _registry;
+        } else if (RegistryType.HYPERCERTS == _type) {
+            // todo:
+            registries[_registry].registry = _registry;
         } else {
             revert RegistryNotSupported();
         }
+    }
+
+    /// @notice Initializes the contract
+    /// @dev During upgrade -> a higher version should be passed to reinitializer. Reverts if the '_owner' is the 'address(0)'
+    /// * we will initiialize with Allo Registry type and add the others.
+    /// @param _owner The owner of the contract
+    function initialize(address _owner, address _registry, RegistryType _type, bytes memory _data)
+        external
+        reinitializer(1)
+    {
+        // Make sure the owner is not 'address(0)'
+        if (_owner == address(0)) revert ZERO_ADDRESS();
+
+        // initialize the Allo Registry by default
+        initializeInternalRegistry(_type, _registry, _data);
     }
 
     function wrappedRegistry() external view override returns (IRegistry) {
