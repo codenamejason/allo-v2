@@ -89,6 +89,8 @@ interface IRegistry {
         view
         returns (bool isOwnerOrMemberOfProfile);
 
+    // Add eas here..
+
     /// @dev Returns a boolean if the '_account' is an owner of the '_profileId' passed in
     /// @param _profileId The 'profileId' to check if the '_account' is an owner of
     /// @param _owner The 'owner' to check if they are an owner of the '_profileId' passed in
