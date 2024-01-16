@@ -58,7 +58,10 @@ contract RegistryWrapper is Registry, IRegistryWrapper, EASSchemaResolver {
     mapping(address => bytes32) public recipientIdToUID;
 
     // Map the registy address to the registry data
-    mapping(address => RegistryData) public registries;
+    mapping(bytes32 => RegistryData) public registriesById;
+
+    // Map the registry address to the registry data
+    mapping(address => RegistryData) public registriesByAddress;
 
     // Queue for publishing
     // registry => publisher => bool
@@ -85,19 +88,19 @@ contract RegistryWrapper is Registry, IRegistryWrapper, EASSchemaResolver {
 
             // Initialize the EAS contract
             __SchemaResolver_init(IEAS(eas));
-            registries[_registry].registry = _registry;
+            registriesByAddress[_registry].registry = _registry;
         } else if (RegistryType.GIVETH == _type) {
             // todo:
-            registries[_registry].registry = _registry;
+            registriesByAddress[_registry].registry = _registry;
         } else if (RegistryType.CLRFUND == _type) {
             // todo:
-            registries[_registry].registry = _registry;
+            registriesByAddress[_registry].registry = _registry;
         } else if (RegistryType.ALLO == _type) {
             // todo:
-            registries[_registry].registry = _registry;
+            registriesByAddress[_registry].registry = _registry;
         } else if (RegistryType.HYPERCERTS == _type) {
             // todo:
-            registries[_registry].registry = _registry;
+            registriesByAddress[_registry].registry = _registry;
         } else {
             revert RegistryNotSupported();
         }
@@ -118,13 +121,14 @@ contract RegistryWrapper is Registry, IRegistryWrapper, EASSchemaResolver {
         initializeInternalRegistry(_type, _registry, _data);
     }
 
-    function wrappedRegistry() external view override returns (IRegistry) {
-        return IRegistry(address(this));
+    function wrappedRegistry(bytes32 _registryId) external view override returns (address) {
+        // todo: return the wrapped registry address
+        return address(this);
     }
 
     function publishRegistry(address registry, bytes32 data) public returns (bool) {
         // Make sure the registry is active
-        if (!registries[registry].active) revert RegistryNotActive();
+        if (!registriesByAddress[registry].active) revert RegistryNotActive();
 
         // Make sure the publisher is not already in the queue
         if (pubQueue[registry][msg.sender]) revert AlreadyPublished();
@@ -150,7 +154,7 @@ contract RegistryWrapper is Registry, IRegistryWrapper, EASSchemaResolver {
 
     function subscribeToRegistry(address registry, bytes32 data) public override returns (bool) {
         // Make sure the registry is active
-        if (!registries[registry].active) revert RegistryNotActive();
+        if (!registriesByAddress[registry].active) revert RegistryNotActive();
 
         // Make sure the subscriber is not already subscribed
         if (subscribers[registry][msg.sender]) revert AlreadySubscribed();
@@ -181,7 +185,7 @@ contract RegistryWrapper is Registry, IRegistryWrapper, EASSchemaResolver {
         if (_registry == address(0)) revert ZERO_ADDRESS();
 
         // Add the registry to the mapping if its not already there, otherwise update it to the new data
-        RegistryData storage registryData = registries[_registry];
+        RegistryData storage registryData = registriesByAddress[_registry];
 
         // decode the data
         (Metadata memory metadata, bool active) = abi.decode(_data, (Metadata, bool));
@@ -194,7 +198,7 @@ contract RegistryWrapper is Registry, IRegistryWrapper, EASSchemaResolver {
             registryData.owner = msg.sender;
 
             // Add to the mapping
-            registries[_registry] = registryData;
+            registriesByAddress[_registry] = registryData;
 
             // Emit the event
             emit RegistryUpdated(_registry, true);
@@ -207,7 +211,7 @@ contract RegistryWrapper is Registry, IRegistryWrapper, EASSchemaResolver {
     /// The data should look like this: (Metadata, bool)
     function updateRegistryList(address _registry, bytes memory _data) external override returns (string memory) {
         // Add the registry to the mapping if its not already there, otherwise update it to the new data
-        RegistryData storage registryData = registries[_registry];
+        RegistryData storage registryData = registriesByAddress[_registry];
 
         // decode the data
         (Metadata memory metadata, bool active) = abi.decode(_data, (Metadata, bool));

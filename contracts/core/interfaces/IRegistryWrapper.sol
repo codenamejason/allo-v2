@@ -38,6 +38,7 @@ interface IRegistryWrapper is IRegistry {
 
     // Let's define a registry struct that each type may have
     struct RegistryData {
+        bytes32 id;
         address owner;
         bool active;
         address registry;
@@ -45,7 +46,7 @@ interface IRegistryWrapper is IRegistry {
     }
 
     // enable multiple registries to be used within the same contract
-    function wrappedRegistry() external view returns (IRegistry);
+    function wrappedRegistry(bytes32 registryId) external view returns (address);
 
     /// ======================
     /// ======= Events =======

@@ -93,8 +93,8 @@ contract RegistryWrapperTest is AlloSetup, RegistryWrapper, RegistryWrapperSetup
         emit RegistryUpdated(address(makeAddr("opeas")), false);
         registryWrapper.updateRegistryList(address(makeAddr("opeas")), abi.encode(metadata, false));
 
-        (address owner, bool active, address registry, Metadata memory meatadata) =
-            registryWrapper.registries(address(makeAddr("opeas")));
+        (bytes32 id, address owner, bool active, address registry, Metadata memory meatadata) =
+            registryWrapper.registriesByAddress(address(makeAddr("opeas")));
 
         assertEq(metadata.protocol, 1);
         assertEq(metadata.pointer, "test metadata");
